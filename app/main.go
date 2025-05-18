@@ -41,17 +41,29 @@ func main() {
 }
 
 func matchLine(line []byte, pattern string) (bool, error) {
+	var ok bool
 	if pattern == "\\d" {
 		pattern = strings.Replace(pattern, "\\d", "0123456789", -1)
+		ok = bytes.ContainsAny(line, pattern)
 	} else if pattern == "\\w" {
 		pattern = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+		ok = bytes.ContainsAny(line, pattern)
+	} else if len(pattern) >= 2 && pattern[0] == '[' && pattern[1] == '^' && pattern[len(pattern)-1] == ']' {
+		pattern := pattern[2 : len(pattern)-1]
+		for _, b := range line {
+			if !bytes.ContainsAny([]byte{b}, pattern) {
+				return true, nil
+			}
+		}
+		return false, nil
 	} else if len(pattern) >= 2 && pattern[0] == '[' && pattern[len(pattern)-1] == ']' {
 		pattern = pattern[1 : len(pattern)-1]
-	} else if utf8.RuneCountInString(strings.Trim(pattern, "\\n")) != 1 {
+		ok = bytes.ContainsAny(line, pattern)
+	} else if utf8.RuneCountInString(strings.Trim(pattern, "\\n")) == 1 {
+		ok = bytes.Contains(line, []byte(pattern))
+	} else {
 		return false, fmt.Errorf("unsupported pattern: %q", pattern)
 	}
-
-	ok := bytes.ContainsAny(line, pattern)
 
 	return ok, nil
 }
