@@ -9,6 +9,7 @@ const (
 	NegatedCharSetType
 	CharSetType
 	StartOfLineType
+	EndOfLineType
 )
 
 type PatternItem struct {

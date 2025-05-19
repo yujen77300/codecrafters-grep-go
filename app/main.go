@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/codecrafters-io/grep-starter-go/app/models"
+	"github.com/codecrafters-io/grep-starter-go/app/utilis"
 )
 
 // Ensures gofmt doesn't remove the "bytes" import above (feel free to remove this!)
@@ -51,6 +52,18 @@ func matchLine(line []byte, pattern string) (bool, error) {
 		return match(line, parsedPattern[1:]), nil
 	}
 
+	if len(parsedPattern) > 0 && parsedPattern[len(parsedPattern)-1].ItemType == models.EndOfLineType {
+		patternWithoutAnchor := parsedPattern[:len(parsedPattern)-1]
+
+		for i := 0; i <= len(line); i++ {
+			// This match must consume the entire remainder of the line
+			if match(line[i:], patternWithoutAnchor) && i+utilis.MatchLength(patternWithoutAnchor) == len(line) {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
 	// Try to match from each starting position
 	for i := 0; i <= len(line); i++ {
 		if match(line[i:], parsedPattern) {
@@ -69,6 +82,13 @@ func parsePattern(pattern string) ([]models.PatternItem, error) {
 	if len(pattern) > 0 && pattern[0] == '^' {
 		result = append(result, models.PatternItem{ItemType: models.StartOfLineType})
 		pattern = pattern[1:]
+	}
+
+	// Check if the pattern ends with a line end anchor
+	endsWithDollar := false
+	if len(pattern) > 0 && pattern[len(pattern)-1] == '$' {
+		endsWithDollar = true
+		pattern = pattern[:len(pattern)-1]
 	}
 
 	for i := 0; i < len(pattern); i++ {
@@ -116,6 +136,11 @@ func parsePattern(pattern string) ([]models.PatternItem, error) {
 			result = append(result, models.PatternItem{ItemType: models.LiteralType, Value: pattern[i]})
 		}
 	}
+
+	if endsWithDollar {
+		result = append(result, models.PatternItem{ItemType: models.EndOfLineType})
+	}
+
 	return result, nil
 }
 
