@@ -8,6 +8,7 @@ const (
 	WordCharType
 	NegatedCharSetType
 	CharSetType
+	StartOfLineType
 )
 
 type PatternItem struct {

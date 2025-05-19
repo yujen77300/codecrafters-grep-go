@@ -47,6 +47,10 @@ func matchLine(line []byte, pattern string) (bool, error) {
 		return false, err
 	}
 
+	if len(parsedPattern) > 0 && parsedPattern[0].ItemType == models.StartOfLineType {
+		return match(line, parsedPattern[1:]), nil
+	}
+
 	// Try to match from each starting position
 	for i := 0; i <= len(line); i++ {
 		if match(line[i:], parsedPattern) {
@@ -59,8 +63,14 @@ func matchLine(line []byte, pattern string) (bool, error) {
 
 // "\d apple" -> [{type: digit}, {type: literal, value: ' '}, {type: literal, value: 'a'}, ...]
 func parsePattern(pattern string) ([]models.PatternItem, error) {
-
 	var result []models.PatternItem
+
+	// Check the pattern starts with a line start anchor
+	if len(pattern) > 0 && pattern[0] == '^' {
+		result = append(result, models.PatternItem{ItemType: models.StartOfLineType})
+		pattern = pattern[1:]
+	}
+
 	for i := 0; i < len(pattern); i++ {
 		if pattern[i] == '\\' && i+1 < len(pattern) {
 			i++
@@ -83,7 +93,6 @@ func parsePattern(pattern string) ([]models.PatternItem, error) {
 				j++
 			}
 
-
 			chars := ""
 			for j < len(pattern) && pattern[j] != ']' {
 				chars += string(pattern[j])
@@ -94,7 +103,7 @@ func parsePattern(pattern string) ([]models.PatternItem, error) {
 				return nil, fmt.Errorf("unclosed character class")
 			}
 
-			//  Skip the entire character set. like: [xyz] 或 [^xyz]
+			//  Skip the entire character set. like: [xyz] or [^xyz]
 			i = j
 
 			if isNegated {
